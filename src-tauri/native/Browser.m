@@ -1,6 +1,6 @@
 /*
  * [INPUT]: Foundation/CoreLocation 状态、SystemConfiguration 代理、LaunchServices 注册/默认处理程序与 proc 进程身份。
- * [OUTPUT]: 含有效区域国家的机器快照、浏览器注册/默认处理程序与系统设置、带生命周期的资料查询（running 为 JSON 布尔值）、未知锁保留和正常退出。
+ * [OUTPUT]: 含有效区域国家的机器快照、浏览器注册/默认处理程序与系统设置、B 用户域推荐级默认搜索引擎策略（不覆盖强制值，读回核验）、带生命周期的资料查询（running 为 JSON 布尔值）、未知锁保留和正常退出。
  * [POS]: 浏览器的只读机器来源和进程边界；不伪造硬件，不读取浏览器凭据。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -20,6 +20,33 @@ char *rf_browser_register(const char *path) {
     OSStatus status=LSRegisterURL((__bridge CFURLRef)url, true);
     if(status!=noErr)return browserResponse(@{@"error":[NSString stringWithFormat:@"浏览器应用注册失败（OSStatus %d）。",(int)status]});
     return browserResponse(@{@"ok":@YES});
+}
+/* 推荐级（非强制）搜索引擎策略：只写 B 自己的 CFPreferences 用户域，Chromium 按 POLICY_LEVEL_RECOMMENDED 读取，
+ * 资料里用户显式选过的引擎优先；已被托管强制的键不覆盖。值相同不重写，写入后逐键读回核验。 */
+char *rf_browser_search_policy(const char *bundle, const char *json) {
+    CFStringRef app=(__bridge CFStringRef)[NSString stringWithUTF8String:bundle];
+    NSData *data=[NSData dataWithBytes:json length:strlen(json)];
+    NSDictionary *values=[NSJSONSerialization JSONObjectWithData:data options:0 error:NULL];
+    if(![values isKindOfClass:NSDictionary.class]||!values.count)
+        return browserResponse(@{@"error":@"默认搜索引擎策略格式错误。"});
+    NSMutableArray<NSString *> *written=[NSMutableArray array];
+    NSUInteger forced=0;
+    for(NSString *key in values) {
+        CFStringRef name=(__bridge CFStringRef)key;
+        if(CFPreferencesAppValueIsForced(name,app)){forced++;continue;}
+        id current=CFBridgingRelease(CFPreferencesCopyAppValue(name,app));
+        if([current isEqual:values[key]])continue;
+        CFPreferencesSetAppValue(name,(__bridge CFPropertyListRef)values[key],app);
+        [written addObject:key];
+    }
+    if(written.count&&!CFPreferencesAppSynchronize(app))
+        return browserResponse(@{@"error":@"无法保存默认搜索引擎策略。"});
+    for(NSString *key in written) {
+        id current=CFBridgingRelease(CFPreferencesCopyAppValue((__bridge CFStringRef)key,app));
+        if(![current isEqual:values[key]])
+            return browserResponse(@{@"error":@"默认搜索引擎策略读回不一致。"});
+    }
+    return browserResponse(@{@"changed":@(written.count),@"forced":@(forced)});
 }
 char *rf_browser_app_running(const char *bundle) {
     NSString *identifier=[NSString stringWithUTF8String:bundle];

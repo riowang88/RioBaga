@@ -55,6 +55,7 @@ extern "C" {
     fn rf_browser_register(path: *const c_char) -> *mut c_char;
     fn rf_browser_default_read(bundle: *const c_char) -> *mut c_char;
     fn rf_browser_set_default(bundle: *const c_char) -> *mut c_char;
+    fn rf_browser_search_policy(bundle: *const c_char, json: *const c_char) -> *mut c_char;
 }
 #[derive(Default)]
 pub struct Browser {
@@ -179,6 +180,39 @@ fn register(engine: &Path) -> Result<(), String> {
     let path = CString::new(engine.to_string_lossy().as_bytes()).map_err(|_| "引擎路径无效。")?;
     let _: serde_json::Value = decode(unsafe { rf_browser_register(path.as_ptr()) })?;
     Ok(())
+}
+/// B 的默认搜索引擎：ungoogled 补丁把预置 Google 改成 "No Search"，而资料 Preferences 里的
+/// default_search_provider_data / search_provider_overrides 均为 tracked pref，无合法 MAC 会在加载时被重置。
+/// 因此以 Chromium 推荐级（非强制）策略提供 Google：资料内用户显式选过的引擎优先，设置里仍可改选；
+/// 代价是 chrome://management 显示「由贵单位管理」。
+pub(crate) fn search_policy() -> serde_json::Value {
+    serde_json::json!({
+        "DefaultSearchProviderEnabled": true,
+        "DefaultSearchProviderName": "Google",
+        "DefaultSearchProviderKeyword": "google.com",
+        "DefaultSearchProviderSearchURL": "https://www.google.com/search?q={searchTerms}",
+        "DefaultSearchProviderSuggestURL": "https://www.google.com/complete/search?client=chrome&q={searchTerms}",
+        "DefaultSearchProviderIconURL": "https://www.google.com/favicon.ico",
+        "DefaultSearchProviderEncodings": ["UTF-8"],
+    })
+}
+#[derive(Deserialize)]
+#[allow(dead_code)]
+pub(crate) struct SearchPolicy {
+    pub changed: u32,
+    pub forced: u32,
+}
+/// 写入指定包标识的 CFPreferences 用户域（只限 B 自己的域；测试传入独立域）。
+#[cfg(target_os = "macos")]
+pub(crate) fn apply_search_policy(bundle: &str) -> Result<SearchPolicy, String> {
+    let id = CString::new(bundle).map_err(|_| "包标识无效。")?;
+    let json = CString::new(search_policy().to_string()).map_err(|_| "默认搜索引擎策略格式错误。")?;
+    decode(unsafe { rf_browser_search_policy(id.as_ptr(), json.as_ptr()) })
+}
+/// Linux 推荐策略需写 /etc，Windows 需写 HKCU\Software\Policies（普通用户只读），均不处理。
+#[cfg(not(target_os = "macos"))]
+pub(crate) fn apply_search_policy(_: &str) -> Result<SearchPolicy, String> {
+    Ok(SearchPolicy { changed: 0, forced: 0 })
 }
 #[cfg(target_os = "macos")]
 fn bundle_id() -> CString {

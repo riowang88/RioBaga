@@ -1,5 +1,5 @@
 // [INPUT]: 当前身份的浏览器资料、配置、原生引擎与进度通道；调用方已持有 Browser gate。
-// [OUTPUT]: 唯一启动过程（用户显式 WebRTC 检测时仅本次实测页附 #webrtc）；只使用已提交的 browser.active，核验实际 user-data-dir，不一致或缺失外部应用时停止且不新建槽位。验证实际进程和回环会话，失败不冒充成功。
+// [OUTPUT]: 唯一启动过程（用户显式 WebRTC 检测时仅本次实测页附 #webrtc）；只使用已提交的 browser.active，核验实际 user-data-dir，不一致或缺失外部应用时停止且不新建槽位。验证实际进程和回环会话，失败不冒充成功。启动前写 B 用户域推荐级默认搜索引擎 Google（失败仅警告）。
 // [POS]: 身份联动和手动启动共用的同步核心，避免重复锁和不同资料路径。
 // [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 use super::*;
@@ -52,6 +52,19 @@ pub(super) fn launch_page(app: &tauri::AppHandle, log: &Reporter, webrtc: bool) 
     config.validate(&machine)?;
     let engine = prepare_engine(app)?;
     register(&engine)?;
+    #[cfg(target_os = "macos")]
+    let policy = apply_search_policy(BROWSER_ID);
+    #[cfg(not(target_os = "macos"))]
+    let policy = apply_search_policy("");
+    if policy.is_err() {
+        log.log(
+            "browser",
+            "warning",
+            "未能写入默认搜索引擎 Google，B 将沿用引擎自带默认值。",
+            0,
+            None,
+        );
+    }
     let binary = binary(&engine);
     if !binary.is_file() {
         return Err("内置浏览器引擎不可用。".into());

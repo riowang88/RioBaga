@@ -356,6 +356,7 @@
 "先退出浏览器，再保存指纹设置。": "Quit browser before saving fingerprint settings."
 "检查独立浏览器配置与资料占用。": "Checking browser configuration and profile use."
 "内置浏览器引擎不可用。": "Bundled browser engine unavailable."
+"未能写入默认搜索引擎 Google，B 将沿用引擎自带默认值。": "Could not set Google as the default search engine; B keeps the engine default."
 "浏览器正在运行：打开 Default 实测页，沿用当前进程参数，不改写正在使用的资料。": "Browser is running. Opening the Default profile check page with the current process settings."
 "浏览器诊断日志不可用。": "Browser diagnostics log unavailable."
 "浏览器日志不可用。": "Browser log unavailable."

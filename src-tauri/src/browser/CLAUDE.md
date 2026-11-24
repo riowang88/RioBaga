@@ -11,9 +11,11 @@ windows.rs: Windows 引擎和共同资料/回环会话编排；用户点击后�
 tests.rs: 临时样本验证缓存/旧站点保留资产、完整重置全部子 Profile/密码库/密钥并保留外部资料、崩溃锁 unlink/未知链接完整预检拒绝、进程重启部分完成与真实 n/N；另验代理/地区；本机 HTTP 样本复现 429 并核验备援解析，Windows 使用真实 junction 样本验证拒绝跨资料目录；不触碰现有账号数据。
 linux.rs: Linux libexec 隔离引擎（兼容源码/Arch 资源目录）、B 启动项和显式 xdg-mime 注册；Exec 双层转义配合固定 /usr/bin/nice -n 0 --，绕过 GLib 在展开 %% 前检查程序名的限制，保持继承优先级，不走 shell 或 env 赋值；真实 GIO 临时样本验证引号/反斜杠/美元/%/=/中文、前导连字符及独立 %U，未注册真实默认程序；UA 不伪装内核核验。
 workspaces.rs: 以 SQLite 绑定统一解析资料与配置；启动只读 browser.active，其他槽位占用或实际资料不一致时停止且不新建槽位；正常退出后才报告完成，身份动作结束再同步/重开；持久阻断防止恢复前启动，删除关联资料单独确认；向 Store 提供当前/目标/恢复相关身份的资料路径，关闭联动时不追加 B 限制；迁移只读有界 config/seed.owner 核验归属并保留手动种子，导入仅独占创建全新配置/owner，不接触当前资料、Cookie 或选择指针。
-launch.rs: 已持有浏览器互斥锁时复用的同步启动核心；browser_launch 的可选 webrtc 仅在用户显式检测时给本次实测页附 #webrtc，自动带起与身份联动走 launch_locked 不附；身份联动与手动启动走同一参数、资料和进程验证，启动后核验实际 user-data-dir 与 browser.active 一致，不一致则停止且不以空白资料兜底。
+launch.rs: 已持有浏览器互斥锁时复用的同步启动核心；注册引擎后写推荐级默认搜索引擎策略（失败仅警告）；browser_launch 的可选 webrtc 仅在用户显式检测时给本次实测页附 #webrtc，自动带起与身份联动走 launch_locked 不附；身份联动与手动启动走同一参数、资料和进程验证，启动后核验实际 user-data-dir 与 browser.active 一致，不一致则停止且不以空白资料兜底。
 workspace_tests.rs: 临时数据库清理前明确释放句柄以兼容 Windows；Cookie/缓存/种子隔离、手动换指纹持久化、旧资料保留及恢复阻断；迁移配置保留手动种子、全新目录只含配置/owner、拒绝覆盖且当前 Cookie/选择不变。
 [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
+
+默认搜索引擎：ungoogled 补丁把预置 Google 改为 "No Search"；资料 Preferences 的 default_search_provider_data 与 search_provider_overrides 都是 tracked pref，无合法 MAC 加载即被重置（不伪造 MAC），Initial Preferences 首跑会整份覆盖宿主预写的语言/WebRTC/定位偏好。故 macOS 每次启动前经 Browser.m 向 B 自己的 CFPreferences 用户域写推荐级（非强制）DefaultSearchProvider* = Google：值相同不重写、托管强制键不覆盖、写后读回；资料内用户显式选过的引擎（含 No Search）优先，未选过的旧资料也会变为 Google；chrome://management 因此显示「由贵单位管理」。写入失败只记警告不阻断启动。Linux（/etc）与 Windows（HKCU\Software\Policies 只读）不处理。tests.rs 覆盖策略内容与独立测试域的写入/读回/幂等。
 
 dns.rs: A 不触发测试域名；固定 Net.Coffee 结果/归属地接口，复用显式代理或当前系统代理、不回退直连，不伪造 Origin/Referer/Cookie。每会话独立随机轮次、两分钟过期、最多三次取数与一次在途、16 个解析器/32 KiB 上限。server.rs 的 dns/start 与 dns/result 仍需当前回环令牌并在回传前复核轮次；旧身份结果不外送。测试服务器显式清除 Windows accept 继承的非阻塞模式，延迟请求头回归保留读取超时。
 

@@ -86,4 +86,6 @@ Linux 的既有 Tauri/Wry/GTK 依赖链仍包含 `glib 0.18.5`，命中 [RUSTSEC
 未设置用户默认启用且保留显式关闭；初始资料原地保留，在显式切换/联动确认时建立绑定，原地保存备份不改变当前绑定。SQLite v3 仅增加本软件身份 ID、资料槽位和派生种子的绑定，不读取浏览器 Cookie 正文。身份选择与资料指针同事务提交，失败回滚；崩溃恢复期间阻断 B 启动，Mac 无启动参数时不回退。正常退出后才切换，重开失败单独报告。每身份独立 user-data-dir/配置，后续身份使用独立资料并保留旧资料；重新启用时可选择采用原资料。浏览器资料不进入加密身份包，依赖 Chromium/OS 本身的保护，不宣称同用户隔离、匿名、跨客户端账号一致或第三方零外连。删除关联资料有独立选项、范围校验和使用中拒绝；实际网页登录须由用户完成。本机/CI 使用临时真实浏览器资料证明 Cookie 与站点存储隔离，不读取真实钥匙串或浏览器数据。
 
 
+默认搜索引擎：macOS 每次启动 B 前只向 B 自己的 CFPreferences 用户域（ai.local.requirement-french.browser）写推荐级 DefaultSearchProvider* = Google，不写资料 Preferences、不伪造 tracked pref MAC、不改引擎文件；托管强制值不覆盖，相同值不重写，写后读回。资料里用户显式选过的引擎优先；chrome://management 会显示「由贵单位管理」，这是推荐策略的固有提示，不代表存在远程管理。不发起网络请求；搜索联想由引擎默认 search.suggest_enabled=false 决定，本改动不开启。Linux/Windows 不写系统策略。
+
 DNS 配置：只在当前独占 user-data-dir 写 Chromium Local State 的 dns_over_https.mode/templates，严格模式不对普通网站解析自动回退普通 DNS。启动时先持久保存这两项原值到同目录 CCBaga-DNS.json，恢复时只改这两项并保留其他字段，不是整个资料备份；跨文件失败可重试，不宣称崩溃事务。自定义端点只接受单个 HTTPS URL/有限 GET 模板，A 不为校验联网，不变更系统/TUN/代理设置；浏览器启动后才由 B 向选定解析器发送查询。DoH 服务域名启动解析、代理代解析及管理策略仍有独立边界。网络配置不随可选身份导出。

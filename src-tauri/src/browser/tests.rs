@@ -1,5 +1,5 @@
 // [INPUT]: 临时样本、指纹参数、固定清理边界与本机 HTTP 限流样本。
-// [OUTPUT]: 外部 B 新旧包名候选顺序与 Bundle ID 核验；缓存/旧站点清理保留资产，显式完整重置同时清除密码与密钥、全部子 Profile 并隔离兄弟资料；链接/进程重启阻断与真实删除计数；地区/网络回归。
+// [OUTPUT]: 外部 B 新旧包名候选顺序与 Bundle ID 核验；缓存/旧站点清理保留资产，显式完整重置同时清除密码与密钥、全部子 Profile 并隔离兄弟资料；链接/进程重启阻断与真实删除计数；地区/网络回归；默认搜索引擎推荐策略内容与独立测试域写入/读回/幂等。
 // [POS]: 浏览器模块行为验证；不访问用户实际资料。
 // [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 use super::*;
@@ -843,4 +843,42 @@ fn browser_lookup_accepts_new_and_legacy_names_by_bundle_id() {
     let system_legacy = fake_browser(&system, "CCBaga-B.app", BROWSER_ID);
     assert_eq!(find_browser(&places), Some(system_legacy));
     fs::remove_dir_all(&root).unwrap();
+}
+
+#[test]
+fn search_policy_offers_google_as_recommended_default() {
+    let policy = super::search_policy();
+    let map = policy.as_object().unwrap();
+    assert!(map.keys().all(|k| k.starts_with("DefaultSearchProvider")));
+    assert_eq!(policy["DefaultSearchProviderEnabled"], true);
+    assert_eq!(policy["DefaultSearchProviderName"], "Google");
+    assert_eq!(policy["DefaultSearchProviderKeyword"], "google.com");
+    for key in ["DefaultSearchProviderSearchURL", "DefaultSearchProviderSuggestURL"] {
+        let url = policy[key].as_str().unwrap();
+        assert!(url.starts_with("https://www.google.com/") && url.contains("{searchTerms}"), "{key}");
+    }
+}
+
+#[cfg(target_os = "macos")]
+#[test]
+fn search_policy_writes_reads_back_and_is_idempotent() {
+    let domain = format!("test.ccbaga.search-policy.{}", std::process::id());
+    let cleanup = || {
+        let _ = std::process::Command::new("/usr/bin/defaults").args(["delete", &domain]).output();
+    };
+    cleanup();
+    let first = super::apply_search_policy(&domain);
+    let second = super::apply_search_policy(&domain);
+    let read = std::process::Command::new("/usr/bin/defaults")
+        .args(["read", &domain, "DefaultSearchProviderSearchURL"])
+        .output()
+        .unwrap();
+    cleanup();
+    let (first, second) = (first.unwrap(), second.unwrap());
+    assert_eq!((first.changed, first.forced), (7, 0));
+    assert_eq!(second.changed, 0, "unchanged values must not be rewritten");
+    assert_eq!(
+        String::from_utf8_lossy(&read.stdout).trim(),
+        "https://www.google.com/search?q={searchTerms}"
+    );
 }

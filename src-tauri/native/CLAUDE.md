@@ -10,7 +10,7 @@ Processes.h: 当前用户进程快照、内核创建时间与路径复核、有�
 ProcessTests.m: 替换 libproc/sysctl/kill 的原生夹具，覆盖未知/列表截断/PID 复用、参数不外送、僵尸与已移除程序、无关同名程序、含空格精确资料、主进程/helper/孤儿及锁保留；新增参数查询失败、查询间退出、errno 保存与错误正文隐私断言；不操作真实客户端。
 Cleanup.m: 共用进程快照并携带内核创建时间，候选查询失败向上传递；libproc 按外层 Claude 应用标识识别全部辅助进程；sysctl 只识别 Node/Bun 执行入口，原生默认版本路径或自定义位置的官方签名标识，不凭任意同名进程匹配；结束前复核创建时间和路径，不输出完整命令；已知凭据服务；只读属性核验后将单条持久引用解析为系统项目引用；文件钥匙串原生单项删除兼容共享密码，其他实现使用单项查询删除，保留系统错误代码和原因，不读取密码或保留撤回副本。
 System.m: Foundation 首选语言、地区格式和时区、CoreLocation 状态、系统授权及稳定标识/语义标签定位开关；定位关闭结果必须经系统读取确认。
-Browser.m: 真实机器状态与代理，NSLocale 读取包含 rg 覆盖的有效国家并保留原始区域标识；LaunchServices 注册独立浏览器、按包标识查询运行、读取 http/https 默认处理程序并以 LSSetDefaultHandlerForURLScheme/LSSetDefaultRoleHandlerForContentType 请求设为默认（系统弹窗确认）；当前用户受管应用主进程/helper 按精确 user-data-dir 或同应用父进程归属核对；孤儿未知、冲突参数和未知锁保留并拒绝；退出前复核生命周期，不强杀 helper。
+Browser.m: 真实机器状态与代理，NSLocale 读取包含 rg 覆盖的有效国家并保留原始区域标识；LaunchServices 注册独立浏览器、按包标识查询运行、读取 http/https 默认处理程序并以 LSSetDefaultHandlerForURLScheme/LSSetDefaultRoleHandlerForContentType 请求设为默认（系统弹窗确认）；rf_browser_search_policy 只向指定包标识用户域写推荐级搜索引擎策略，跳过强制值、相同值不重写并读回核验；当前用户受管应用主进程/helper 按精确 user-data-dir 或同应用父进程归属核对；孤儿未知、冲突参数和未知锁保留并拒绝；退出前复核生命周期，不强杀 helper。
 Clipboard.m: 主线程文本复制、辅助功能设置入口与共享响应释放；不捕获选区、不模拟键盘。
 [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 
